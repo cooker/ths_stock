@@ -22,7 +22,7 @@ export interface FilterConfig {
   maxMinuteStrength: number
   // 过滤ST开关（true=排除ST，false=不筛选）
   filterST: boolean
-  // 过滤创业板开关（true=排除创业板，false=不筛选）
+  // 过滤科创板开关（true=排除科创板，false=不筛选）
   filterChiNext: boolean
   // 排序
   sortBy: 'changePercent' | 'price' | 'circulatingMarketValue' | 'volumeRatio' | 'turnoverRate'
@@ -79,7 +79,7 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
       </div>
 
       {isOpen && (
-        <div className="p-4 space-y-4 border-t border-gray-200 max-h-[600px] overflow-y-auto">
+        <div className="p-4 space-y-4 border-t border-gray-200">
           {/* 当日涨幅区间 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -308,7 +308,7 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
             </label>
           </div>
 
-          {/* 过滤创业板开关 */}
+          {/* 过滤科创板开关 */}
           <div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -322,7 +322,7 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
                 }
                 className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
-              <span className="text-sm font-medium text-gray-700">过滤创业板</span>
+              <span className="text-sm font-medium text-gray-700">过滤科创板</span>
             </label>
           </div>
 

@@ -3,7 +3,15 @@
 const STORAGE_KEYS = {
   WATCHLIST: 'stock_watchlist',
   SETTINGS: 'stock_settings',
+  EXCLUDED_STOCKS: 'stock_excluded',
 } as const
+
+export interface ExcludedStock {
+  code: string
+  name: string
+  reason: string
+  excludedAt: number // 时间戳
+}
 
 export interface WatchlistGroup {
   id: string
@@ -122,4 +130,63 @@ export function renameGroup(groupId: string, newName: string): void {
     group.name = newName
     saveWatchlist(watchlist)
   }
+}
+
+// ========== 剔除股票管理 ==========
+
+// 获取剔除股票列表
+export function getExcludedStocks(): ExcludedStock[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.EXCLUDED_STOCKS)
+    if (data) {
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('读取剔除股票列表失败:', error)
+  }
+  return []
+}
+
+// 保存剔除股票列表
+export function saveExcludedStocks(excludedStocks: ExcludedStock[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EXCLUDED_STOCKS, JSON.stringify(excludedStocks))
+  } catch (error) {
+    console.error('保存剔除股票列表失败:', error)
+  }
+}
+
+// 剔除股票
+export function excludeStock(code: string, name: string, reason: string): void {
+  const excludedStocks = getExcludedStocks()
+  // 检查是否已存在
+  if (!excludedStocks.find(s => s.code === code)) {
+    excludedStocks.push({
+      code,
+      name,
+      reason,
+      excludedAt: Date.now(),
+    })
+    saveExcludedStocks(excludedStocks)
+  }
+}
+
+// 恢复股票（从剔除列表中移除）
+export function restoreStock(code: string): void {
+  const excludedStocks = getExcludedStocks()
+  const filtered = excludedStocks.filter(s => s.code !== code)
+  saveExcludedStocks(filtered)
+}
+
+// 检查股票是否被剔除
+export function isExcluded(code: string): boolean {
+  const excludedStocks = getExcludedStocks()
+  return excludedStocks.some(s => s.code === code)
+}
+
+// 获取剔除原因
+export function getExcludeReason(code: string): string | null {
+  const excludedStocks = getExcludedStocks()
+  const stock = excludedStocks.find(s => s.code === code)
+  return stock?.reason || null
 }

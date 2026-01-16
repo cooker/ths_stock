@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react'
-import { ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Star, X, Ban } from 'lucide-react'
 import { StockQuote } from '../App'
-import { isInWatchlist, addToWatchlist, removeFromWatchlist } from '../services/storage'
+import { isInWatchlist, addToWatchlist, removeFromWatchlist, excludeStock } from '../services/storage'
 import { formatStockCode } from '../utils/stockCode'
 
 interface StockListProps {
   stocks: StockQuote[]
   loading: boolean
   onSelectStock: (code: string) => void
+  onExcludeStock?: () => void // 剔除股票后的回调
 }
 
 const ITEMS_PER_PAGE = 50
 
-export default function StockList({ stocks, loading, onSelectStock }: StockListProps) {
+export default function StockList({ stocks, loading, onSelectStock, onExcludeStock }: StockListProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [excludeModal, setExcludeModal] = useState<{ code: string; name: string } | null>(null)
+  const [excludeReason, setExcludeReason] = useState('')
   
   const totalPages = Math.ceil(stocks.length / ITEMS_PER_PAGE)
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
@@ -49,6 +52,24 @@ export default function StockList({ stocks, loading, onSelectStock }: StockListP
     } else {
       addToWatchlist(code)
       setFavorites(prev => new Set(prev).add(code))
+    }
+  }
+
+  const handleExcludeStock = (stock: StockQuote, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setExcludeModal({ code: stock.code, name: stock.name })
+    setExcludeReason('')
+  }
+
+  const handleConfirmExclude = () => {
+    if (excludeModal) {
+      excludeStock(excludeModal.code, excludeModal.name, excludeReason || '无备注')
+      setExcludeModal(null)
+      setExcludeReason('')
+      // 通知父组件重新筛选
+      if (onExcludeStock) {
+        onExcludeStock()
+      }
     }
   }
   const formatNumber = (num: number) => {
@@ -120,6 +141,9 @@ export default function StockList({ stocks, loading, onSelectStock }: StockListP
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
                 收藏
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                剔除
               </th>
             </tr>
           </thead>
@@ -194,11 +218,77 @@ export default function StockList({ stocks, loading, onSelectStock }: StockListP
                     />
                   </button>
                 </td>
+                <td className="px-4 py-3 whitespace-nowrap text-center">
+                  <button
+                    onClick={(e) => handleExcludeStock(stock, e)}
+                    className="p-1 hover:bg-red-50 rounded transition-colors text-red-600 hover:text-red-700"
+                    title="剔除股票"
+                  >
+                    <Ban className="w-5 h-5" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* 剔除股票弹窗 */}
+      {excludeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">剔除股票</h3>
+              <button
+                onClick={() => {
+                  setExcludeModal(null)
+                  setExcludeReason('')
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                股票代码：<span className="font-medium">{formatStockCode(excludeModal.code)}</span>
+              </p>
+              <p className="text-sm text-gray-600">
+                股票名称：<span className="font-medium">{excludeModal.name}</span>
+              </p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                剔除原因（可选）
+              </label>
+              <textarea
+                value={excludeReason}
+                onChange={(e) => setExcludeReason(e.target.value)}
+                placeholder="请输入剔除原因..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setExcludeModal(null)
+                  setExcludeReason('')
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmExclude}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                确认剔除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">

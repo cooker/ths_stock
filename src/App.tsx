@@ -7,6 +7,7 @@ import IndustryPanel from './components/IndustryPanel'
 import WatchlistPanel from './components/WatchlistPanel'
 import RankingsPanel from './components/RankingsPanel'
 import { StockSDK } from 'stock-sdk'
+import { isExcluded } from './services/storage'
 
 export interface StockQuote {
   code: string
@@ -108,6 +109,10 @@ function App() {
 
   const applyFilters = (stockList: StockQuote[], filterConfig: typeof filters) => {
     let filtered = stockList.filter(stock => {
+      // 排除已剔除的股票
+      if (isExcluded(stock.code)) {
+        return false
+      }
       // 当日涨幅区间筛选
       if (stock.changePercent < filterConfig.minChangePercent || 
           stock.changePercent > filterConfig.maxChangePercent) {
@@ -160,11 +165,11 @@ function App() {
         }
       }
 
-      // 过滤创业板（开关为true时排除创业板）
+      // 过滤科创板（开关为true时排除科创板）
       if (filterConfig.filterChiNext) {
         const codeStr = stock.code.replace(/^sz|^sh|^bj/, '') // 移除前缀
-        const isChiNext = codeStr.startsWith('300')
-        if (isChiNext) {
+        const isSciTech = codeStr.startsWith('688') // 科创板代码以688开头
+        if (isSciTech) {
           return false
         }
       }
@@ -325,7 +330,7 @@ function App() {
 
         {activeTab === 'stocks' ? (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 sticky top-4 self-start">
               <FilterPanel
                 filters={filters}
                 onFilterChange={handleFilterChange}
@@ -343,6 +348,10 @@ function App() {
                   stocks={filteredStocks}
                   loading={loading}
                   onSelectStock={setSelectedStock}
+                  onExcludeStock={() => {
+                    // 重新应用筛选，排除已剔除的股票
+                    applyFilters(stocks, filters)
+                  }}
                 />
               )}
             </div>
